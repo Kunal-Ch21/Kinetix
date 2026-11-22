@@ -1,0 +1,285 @@
+[
+  {
+    "id": "setup",
+    "title": "1. Model Setup",
+    "badge": "Live in this build",
+    "blocks": [
+      { "type": "p", "text": "Kinetix Studio never lets a language model draw pixels. The local model is a **stateless, amnesic translator**: it turns one sentence into a short JSON list of *ops*, and deterministic native code does every piece of math, rigging, morphing and rendering." },
+      { "type": "h", "text": "Choosing a model" },
+      { "type": "ul", "items": [
+        "**Low-End / Ultra-Fast** (4–8 GB RAM, CPU): `qwen2.5:1.5b` (~1.1 GB).",
+        "**Balanced – recommended** (Ryzen 7 7735HS, 16 GB, Radeon 680M): `llama3.2:3b` Q4_K_M (~2.0 GB).",
+        "**High Precision** (32 GB RAM / dedicated GPU): `qwen2.5-coder:7b` (~4.7 GB).",
+        "**Bring your own**: Settings → AI Engine → *Browse .gguf*; the app writes a Modelfile and registers it with Ollama for you."
+      ] },
+      { "type": "tip", "text": "No model installed yet? Everything in this guide still works: the **Director console** in the left dock accepts the same JSON ops the model would produce, and every Cookbook recipe below is exactly that JSON." },
+      { "type": "h", "text": "Why prompts stay tiny" },
+      { "type": "p", "text": "Each request is two messages only: compact rules + a filtered micro-context (the cast roster, the selected object's blueprint, the keyframe at the playhead) + your sentence. History is never sent, so a project with 10,000 keyframes costs the same ~100 tokens as an empty one." }
+    ]
+  },
+  {
+    "id": "drawing",
+    "title": "2. Freehand & Bézier Drawing",
+    "badge": "Live in this build",
+    "blocks": [
+      { "type": "p", "text": "Every shape in a scene is a list of cubic Bézier segments in a resolution-independent **0–100 grid** (origin top-left). That is what makes morphing, rigging and export exact." },
+      { "type": "h", "text": "Tools" },
+      { "type": "ul", "items": [
+        "**Freehand Brush** – smooths your stroke into clean cubic Béziers (adjustable smoothing, width, taper).",
+        "**Pen / Node editor** – click-drag anchors and tangent handles to sculpt any silhouette.",
+        "**Parametric shapes** – rect, circle, ellipse, star, polygon, line, or any `svg_path` string.",
+        "**Convert to Bézier Path** (right-click) turns any shape into editable nodes, ready to be a morph target."
+      ] },
+      { "type": "h", "text": "Writing a path by hand" },
+      { "type": "code", "text": "{ \"op\": \"create_shape\", \"label\": \"Leaf\", \"shape\": \"svg_path\",\n  \"svg_path\": \"M0,-10 C8,-6 8,6 0,10 C-8,6 -8,-6 0,-10 Z\",\n  \"x\": 50, \"y\": 50, \"fill\": \"#22C55E\" }" },
+      { "type": "tip", "text": "Paths use **local units** centred on (0,0). One unit is 1% of the stage width, so a shape 20 units wide always covers a fifth of the frame at any export size. Arcs (`A`), quadratics (`Q`,`T`) and smooth curves (`S`) are all converted to cubics automatically." }
+    ]
+  },
+  {
+    "id": "rigging",
+    "title": "3. Image Import, Rigging & Clones",
+    "badge": "Live in this build",
+    "blocks": [
+      { "type": "h", "text": "Parent-child rigging (attach_part)" },
+      { "type": "p", "text": "Attach any shape, tattoo, limb, armour piece or imported sprite to a parent. The child's `dx, dy` are **local offsets in the parent's geometry space**, so it inherits the parent's position, rotation, scale and opacity every frame." },
+      { "type": "code", "text": "{ \"op\": \"attach_part\", \"id\": \"Sword\", \"parent\": \"Knight\",\n  \"dx\": 6, \"dy\": 1, \"pivot_x\": 0, \"pivot_y\": 4, \"rotation\": -30 }" },
+      { "type": "ul", "items": [
+        "`pivot_x / pivot_y` is the point of the child's own geometry that is pinned to the attach point, and the centre of its rotation.",
+        "Select a part and use **Rig & Morph → Parent** to re-parent from the inspector. Cycles are rejected.",
+        "Hiding or fading a parent hides or fades the whole rig."
+      ] },
+      { "type": "h", "text": "Clone & Override" },
+      { "type": "p", "text": "`clone` copies an object **and its entire rig subtree**, including keyframes, then applies differential overrides – no geometry is rebuilt." },
+      { "type": "code", "text": "{ \"op\": \"clone\", \"source\": \"Robot\", \"label\": \"Robot Variant\",\n  \"overrides\": { \"fill\": \"#7C2D12\", \"scale\": 1.6 },\n  \"part_overrides\": { \"Robot Eye\": { \"fill\": \"#F59E0B\" } },\n  \"add_parts\": [ { \"label\": \"Antenna\", \"shape\": \"line\", \"length\": 5, \"dx\": 0, \"dy\": -12, \"rotation\": 90 } ] }" },
+      { "type": "tip", "text": "**Duplicate lock:** creating a shape whose label already exists reuses the existing object instead of making a twin. Pass `\"force_new\": true` if you really want a copy." },
+      { "type": "h", "text": "Image import" },
+      { "type": "p", "text": "PNG, JPG, WebP and SVG files are stored in the project asset folder and indexed with a label, tags and bounding box, so imported art can be animated, tinted, rim-lit, used as a parallax layer, or become a parent for attached parts." }
+    ]
+  },
+  {
+    "id": "lighting",
+    "title": "4. Realistic Rim Lighting",
+    "badge": "Live in this build",
+    "blocks": [
+      { "type": "p", "text": "Add **point**, **spot** and **sun** lights as scene objects (header → *Add Light*, or the `add_light` op). Every object that has a **Rim** setting then receives a specular crescent on the edge that faces each light, in that light's colour." },
+      { "type": "h", "text": "How the rim shader works" },
+      { "type": "ul", "items": [
+        "The silhouette is drawn, then an **offset copy** (shifted away from the light by `spread`) is erased from it. What survives is a crescent hugging the light-facing edge.",
+        "A second, thinner, whiter pass adds the **specular core**. Both passes are composited additively and also written to the **bloom buffer**.",
+        "Up to the 3 strongest lights contribute, weighted by intensity, distance falloff and (for spots) the beam cone."
+      ] },
+      { "type": "h", "text": "Object lighting controls" },
+      { "type": "ul", "items": [
+        "**Rim intensity / spread / use light colour** – set a fixed colour, or let each light tint its own rim for dual cyan + amber looks.",
+        "**Lit** – diffuse light wash clipped to the silhouette.",
+        "**Cast shadow** – soft shadow thrown *away* from the key light (`auto`), or fixed offset.",
+        "**Ambient occlusion** – a soft contact-darkening pool beneath the object.",
+        "**Glow** – emissive output into the multi-pass bloom.",
+        "**Depth** – 0 near … 1 far. Far objects pick up atmospheric haze and, with *Depth of field* on, blur away from the focus plane."
+      ] },
+      { "type": "h", "text": "Volumetrics" },
+      { "type": "p", "text": "Turn on **Volumetric** on a light for god-rays and halo (point), a visible beam cone (spot) or a broad atmospheric wash (sun)." },
+      { "type": "code", "text": "{ \"op\": \"set_rim\", \"id\": \"Peregrine Falcon\", \"color\": \"#06B6D4\",\n  \"light_color\": true, \"intensity\": 1.2, \"spread\": 0.9 }" },
+      { "type": "tip", "text": "Light properties are animatable: keyframe `intensity`, `x`, `y`, `radius` or `angle` on a light to make a flash, a sunset or a sweeping searchlight." }
+    ]
+  },
+  {
+    "id": "timeline",
+    "title": "5. Timeline, Curves & Morphing",
+    "badge": "Live in this build",
+    "blocks": [
+      { "type": "h", "text": "Keyframes & the dope sheet" },
+      { "type": "p", "text": "Every animatable property (`x, y, rotation, scale, opacity, morph, glow, rim`) has a track of amber diamonds. **Drag** a diamond to retime it, **click** to select it, **right-click** to delete or choose an easing. Dragging an object on the canvas writes a keyframe at the playhead when that property is already animated." },
+      { "type": "h", "text": "Cubic-Bézier curve editor" },
+      { "type": "p", "text": "Select a keyframe, open the **Curve** tab, and drag the two handles. The curve shapes the motion *leaving* that keyframe. Values above 1 or below 0 overshoot – that is how springs and anticipation are made. Presets: linear, ease-in, ease-out, ease-in-out, back-out, snap." },
+      { "type": "h", "text": "Parametric presets" },
+      { "type": "ul", "items": [
+        "`linear_move`, `ease_in_out`, `spring_bounce` – move to `to_x,to_y` (or `dx,dy`).",
+        "`arc_jump` – parabolic hop with `height`.",
+        "`walk_cycle` – `steps`, `distance`, `bob`, `sway`.",
+        "`orbit` – `radius`, `turns`, optional `center_x/center_y`.",
+        "`pulse` – `amount`, `count`.   `shake` – `amplitude`, `count`."
+      ] },
+      { "type": "code", "text": "{ \"op\": \"animate\", \"id\": \"Ball\", \"preset\": \"arc_jump\",\n  \"dx\": 30, \"height\": 20, \"start\": 1, \"duration\": 1.2 }" },
+      { "type": "h", "text": "Vector path morphing (morph_to)" },
+      { "type": "p", "text": "Morphing works between **any two paths**. The engine pairs sub-paths, subdivides the shorter outline until both have the same number of Bézier segments, fixes winding direction, then picks the start-point rotation that minimises travel. Interpolation runs on the control points every frame, so it stays smooth at 60 FPS." },
+      { "type": "code", "text": "{ \"op\": \"morph_to\", \"id\": \"Peregrine Falcon\", \"target\": \"Shadow Beast\",\n  \"at\": 3.5, \"duration\": 2, \"ease\": [0.65, 0, 0.35, 1] }" },
+      { "type": "tip", "text": "`target` may be another object (its path **and** colour are used), or an inline spec such as `{ \"shape\": \"star\", \"outer\": 12 }`, or `{ \"svg_path\": \"M…\" }`. The object's *fill → fill-to* colours cross-fade with the morph." },
+      { "type": "h", "text": "Relative modifiers" },
+      { "type": "p", "text": "Never ask the model to do arithmetic. Use `{ \"op\": \"speed\", \"id\": \"Ball\", \"speed_multiplier\": 2 }` or `keyframe` with `\"modifier\": \"add\" | \"multiply\"` – exact values are computed in code." }
+    ]
+  },
+  {
+    "id": "worlds",
+    "title": "6. Kinetic Type, Environments & Particles",
+    "badge": "Live in this build",
+    "blocks": [
+      { "type": "h", "text": "Kinetic typography" },
+      { "type": "p", "text": "Text splits into characters or words, each delayed by `stagger` seconds. Effects: `rise`, `fade`, `pop` (spring), `drop` (bounce), `spin`, `wave` (continuous), `typewriter`. Text objects support fill, glow, rim lighting, keyframes and parenting like any other object." },
+      { "type": "code", "text": "{ \"op\": \"add_text\", \"content\": \"HELLO\", \"effect\": \"pop\", \"unit\": \"char\",\n  \"stagger\": 0.08, \"start\": 0.5, \"size\": 9, \"x\": 50, \"y\": 45 }" },
+      { "type": "h", "text": "Procedural backgrounds" },
+      { "type": "p", "text": "`set_background` loads a full procedural world: multi-stop sky gradient, sun/moon glow, twinkling stars, drifting volumetric clouds, three-layer parallax mountains, horizon haze, depth-of-field and vignette. Presets: `dusk`, `night`, `dawn`, `storm`, `day`, `none`. Every value is editable in the **World** tab." },
+      { "type": "h", "text": "Particle emitters" },
+      { "type": "p", "text": "Kinds: `embers`, `sparks`, `mist`, `rain`, `snow`, `trail`. A trail emitter with `follow` leaves particles *where the object was*, so it always matches the motion. Particles are a pure function of time, so scrubbing and export are frame-exact." },
+      { "type": "code", "text": "{ \"op\": \"add_emitter\", \"kind\": \"trail\", \"follow\": \"Ember Star\",\n  \"color\": \"#F59E0B\", \"color2\": \"#EF4444\", \"start\": 0, \"end\": 6 }" }
+    ]
+  },
+  {
+    "id": "export",
+    "title": "7. Exporting: MP4, GIF, PNG, SVG, JSON",
+    "badge": "Live in this build",
+    "blocks": [
+      { "type": "p", "text": "**Export** (top-right) renders your project frame by frame with the *same* renderer the viewport uses — no screen capture. Frame `i` is drawn at `t = i ÷ fps`, so the same project always produces the same pixels, at any resolution, on any machine." },
+      { "type": "h", "text": "Formats" },
+      { "type": "ul", "items": [
+        "**MP4 (H.264)** — `yuv420p`, BT.709, `+faststart`, CRF quality (default 18, preset `veryfast`). Frames are streamed straight into FFmpeg, so a 10-minute 4K export never holds more than one frame in memory.",
+        "**GIF** — palette-optimised with FFmpeg `palettegen` + `paletteuse` (Bayer dithering). GIF stores delays in 1/100 s, so 60 fps plays at about 50 fps; 24–30 fps is the sweet spot.",
+        "**PNG sequence** — one numbered file per frame (`frame_0000.png`, `frame_0001.png` …) into a folder you choose. The numbers are the real frame indices, so exporting 2.5 s–4 s at 30 fps starts at `frame_0075.png`. Works without FFmpeg.",
+        "**SVG** — a resolution-independent vector snapshot at the playhead (rig transforms, keyframes, morphs, gradients, shadows and sprites). Bloom, volumetric light and particles are raster effects and are not included.",
+        "**Scene JSON** — the complete project (objects, rig, keyframes, lights, emitters, story events) as `.kinetix.json`.",
+        "**PNG still** — the current playhead frame at the chosen resolution."
+      ] },
+      { "type": "h", "text": "Resolution, frame rate and range" },
+      { "type": "ul", "items": [
+        "**720p / 1080p** keep your scene's aspect ratio (height fixed, width derived and rounded to an even number — H.264 requires even sizes). **Custom** accepts any size up to 7680 × 4320.",
+        "**24 / 30 / 60 fps.** The range is `[start, end)` in seconds — the end is exclusive, so a 10 s project at 60 fps is exactly 600 frames. *From playhead* starts the export where you are parked.",
+        "Because the scene lives on a 0–100 grid, changing resolution never changes the composition."
+      ] },
+      { "type": "h", "text": "Where the file goes" },
+      { "type": "p", "text": "Press **Browse…** (or just **Export**) to pick a file with the native save dialog — or a folder for PNG sequences. Videos are written to `<name>.part` and renamed only when FFmpeg finishes cleanly, so a failed or cancelled export never leaves a half-written video." },
+      { "type": "h", "text": "Progress, cancel and errors" },
+      { "type": "ul", "items": [
+        "The progress panel shows **frame x / N**, **ETA**, elapsed time and **MB written**.",
+        "**Cancel export** stops immediately: FFmpeg is killed and every temporary and partial file is deleted. Closing the app mid-export does the same.",
+        "**Disk full** and **permission denied** are reported in plain language (for example *“Disk full while writing …”*) and partial files are cleaned up — free some space or pick another drive and try again."
+      ] },
+      { "type": "h", "text": "FFmpeg" },
+      { "type": "p", "text": "MP4 and GIF are encoded by FFmpeg. Kinetix looks for it in this order: the `KINETIX_FFMPEG` environment variable → a copy bundled **next to the app** (the sidecar in installer builds) → `ffmpeg` on your `PATH`." },
+      { "type": "code", "text": "winget install Gyan.FFmpeg      # Windows\nsudo apt install ffmpeg         # Debian / Ubuntu\nbrew install ffmpeg             # macOS" },
+      { "type": "tip", "text": "No FFmpeg? The Export dialog says so clearly and keeps **PNG sequence**, **SVG**, **Scene JSON** and **PNG still** fully usable. You can turn a PNG sequence into a video later with any editor." },
+      { "type": "tip", "text": "Developers: `npm run tauri:build:bundled` stages FFmpeg as a Tauri sidecar (`externalBin`) so the installer ships it. See the README, section *Build & package*." }
+    ]
+  },
+  {
+    "id": "cookbook",
+    "title": "8. Prompt Cookbook",
+    "badge": "Runnable",
+    "blocks": [
+      { "type": "p", "text": "Each recipe shows the plain-English prompt and the exact ops the local model produces for it. Press **Try in Canvas** to apply it to your current project (inside the app) or to open it in the studio (from the web guide)." },
+      {
+        "type": "recipe",
+        "id": "rim_orb",
+        "title": "Rim-lit glass orb",
+        "prompt": "On a night sky, add a dark orb lit by an amber light from the left and a cyan light from the right, with strong rim lighting and a soft shadow. Make it orbit.",
+        "ops": [
+          { "op": "set_background", "preset": "night" },
+          { "op": "create_shape", "label": "Glass Orb", "shape": "circle", "r": 9, "x": 50, "y": 52, "fill": "#1B2236", "depth": 0.2, "ao": 0.6, "glow": 0.15 },
+          { "op": "add_light", "type": "point", "label": "Amber Key", "x": 22, "y": 30, "color": "#F59E0B", "intensity": 1.1, "radius": 70 },
+          { "op": "add_light", "type": "point", "label": "Cyan Fill", "x": 80, "y": 34, "color": "#06B6D4", "intensity": 0.9, "radius": 70 },
+          { "op": "set_rim", "id": "Glass Orb", "light_color": true, "intensity": 1.3, "spread": 1.1 },
+          { "op": "set_shadow", "id": "Glass Orb", "opacity": 0.45, "blur": 4, "distance": 4 },
+          { "op": "animate", "id": "Glass Orb", "preset": "orbit", "radius": 10, "turns": 1, "start": 0, "duration": 8 }
+        ]
+      },
+      {
+        "type": "recipe",
+        "id": "morph_star",
+        "title": "Morph a circle into a star",
+        "prompt": "Make a blue circle at dawn that morphs into a golden five-point star after one second, then pulses three times.",
+        "ops": [
+          { "op": "set_background", "preset": "dawn" },
+          { "op": "create_shape", "label": "Morph Blob", "shape": "circle", "r": 9, "x": 50, "y": 50, "fill": "#3B82F6", "glow": 0.4, "rim": { "color": "#FFFFFF", "intensity": 1, "spread": 0.8 } },
+          { "op": "add_light", "type": "sun", "label": "Morning Sun", "angle": -40, "color": "#FFE3A3", "intensity": 1, "volumetric": false },
+          { "op": "morph_to", "id": "Morph Blob", "target": { "shape": "star", "points": 5, "outer": 13, "inner": 5.5 }, "fill": "#F59E0B", "at": 1, "duration": 2, "ease": [0.65, 0, 0.35, 1] },
+          { "op": "animate", "id": "Morph Blob", "preset": "pulse", "start": 3.2, "duration": 2, "count": 3 }
+        ]
+      },
+      {
+        "type": "recipe",
+        "id": "robot_clone",
+        "title": "Rigged robot + clone variant",
+        "prompt": "Build a small robot with a head, a glowing cyan eye and a waving arm. Then clone it as an orange variant with an antenna.",
+        "ops": [
+          { "op": "set_background", "preset": "night" },
+          { "op": "create_assembly", "label": "Robot", "shape": "rect", "w": 8, "h": 10, "radius": 2, "x": 30, "y": 58, "fill": "#2A3350", "scale": 1.3,
+            "parts": [
+              { "label": "Robot Head", "shape": "rect", "w": 7, "h": 5, "radius": 1.5, "dx": 0, "dy": -8, "fill": "#3A4670" },
+              { "label": "Robot Eye", "shape": "circle", "r": 0.8, "dx": 0, "dy": -8, "fill": "#22D3EE", "glow": 1.4 },
+              { "label": "Robot Arm", "shape": "rect", "w": 2, "h": 7, "radius": 1, "dx": 6, "dy": -2, "pivot_y": -3, "fill": "#3A4670" }
+            ] },
+          { "op": "add_light", "type": "point", "label": "Sky Light", "x": 50, "y": 12, "color": "#9CC9FF", "intensity": 1, "radius": 80 },
+          { "op": "set_rim", "id": "Robot", "color": "#06B6D4", "light_color": true, "intensity": 1 },
+          { "op": "keyframe", "id": "Robot Arm", "prop": "rotation", "t": 0, "value": -20, "ease": "ease_in_out" },
+          { "op": "keyframe", "id": "Robot Arm", "prop": "rotation", "t": 1, "value": 40, "ease": "ease_in_out" },
+          { "op": "keyframe", "id": "Robot Arm", "prop": "rotation", "t": 2, "value": -20 },
+          { "op": "clone", "source": "Robot", "label": "Robot Variant", "overrides": { "fill": "#7C2D12", "scale": 1.6, "x": 68, "y": 56 },
+            "part_overrides": { "Robot Eye": { "fill": "#F59E0B" }, "Robot Head": { "fill": "#9A3412" } },
+            "add_parts": [ { "label": "Antenna", "shape": "line", "length": 5, "dx": 0, "dy": -11, "rotation": 90, "stroke": "#F59E0B" } ] }
+        ]
+      },
+      {
+        "type": "recipe",
+        "id": "kinetic_title",
+        "title": "Kinetic title sequence",
+        "prompt": "Drop the letters of KINETIX STUDIO in one by one, then fade in a tagline word by word and add a wavy line of monospace text.",
+        "ops": [
+          { "op": "set_background", "preset": "night" },
+          { "op": "add_text", "label": "Headline", "content": "KINETIX STUDIO", "size": 8, "weight": 800, "effect": "drop", "unit": "char", "stagger": 0.07, "duration": 0.8, "start": 0.2, "x": 50, "y": 42, "fill": "#F4F6FB", "glow": 0.4 },
+          { "op": "add_text", "label": "Tagline", "content": "Type that moves with intent", "size": 2.6, "weight": 500, "effect": "rise", "unit": "word", "stagger": 0.18, "duration": 0.6, "start": 1.4, "x": 50, "y": 56, "fill": "#06B6D4" },
+          { "op": "add_text", "label": "Wavy", "content": "~ every letter alive ~", "size": 2.4, "effect": "wave", "unit": "char", "stagger": 0.04, "start": 2.4, "x": 50, "y": 66, "fill": "#F59E0B", "font": "mono" }
+        ]
+      },
+      {
+        "type": "recipe",
+        "id": "snow_night",
+        "title": "Snowfall under a street lamp",
+        "prompt": "A snowy night with drifting mist and a warm spotlight shining down from above.",
+        "ops": [
+          { "op": "set_background", "preset": "night" },
+          { "op": "add_emitter", "kind": "snow" },
+          { "op": "add_emitter", "kind": "mist", "color": "#9DB4E8" },
+          { "op": "add_light", "type": "spot", "label": "Street Lamp", "x": 50, "y": 6, "angle": 90, "cone": 26, "radius": 70, "color": "#FFD9A0", "intensity": 1.2 }
+        ]
+      },
+      {
+        "type": "recipe",
+        "id": "orbit_embers",
+        "title": "Orbiting star with an ember trail",
+        "prompt": "A glowing six-point star orbits twice at dusk, leaving a fiery trail behind it.",
+        "ops": [
+          { "op": "set_background", "preset": "dusk" },
+          { "op": "create_shape", "label": "Ember Star", "shape": "star", "points": 6, "outer": 5, "inner": 2.2, "x": 50, "y": 45, "fill": "#FFB347", "glow": 1.2, "rim": { "color": "#FFFFFF", "intensity": 0.8, "spread": 0.6 } },
+          { "op": "animate", "id": "Ember Star", "preset": "orbit", "radius": 16, "turns": 2, "start": 0, "duration": 8 },
+          { "op": "add_emitter", "kind": "trail", "follow": "Ember Star", "color": "#F59E0B", "color2": "#EF4444" }
+        ]
+      },
+      {
+        "type": "recipe",
+        "id": "spring_ball",
+        "title": "Spring bounce + arc jump",
+        "prompt": "A red ball springs across a sunny day to the bottom right, then jumps back in a high arc.",
+        "ops": [
+          { "op": "set_background", "preset": "day" },
+          { "op": "create_shape", "label": "Bouncer", "shape": "circle", "r": 5, "x": 20, "y": 30, "fill": "#EF4444", "ao": 0.5, "shadow": { "opacity": 0.35, "blur": 2, "dx": 2, "dy": 3, "auto": false }, "rim": { "color": "#FFFFFF", "intensity": 0.9, "spread": 0.6, "angle": -50 } },
+          { "op": "animate", "id": "Bouncer", "preset": "spring_bounce", "to_x": 75, "to_y": 78, "start": 0.5, "duration": 2.5 },
+          { "op": "animate", "id": "Bouncer", "preset": "arc_jump", "dx": -20, "height": 25, "start": 3.5, "duration": 1.5 }
+        ]
+      }
+    ]
+  },
+  {
+    "id": "reference",
+    "title": "9. JSON Op Reference",
+    "badge": "Live in this build",
+    "blocks": [
+      { "type": "ul", "items": [
+        "`create_shape` · `create_assembly` · `attach_part` · `detach_part` · `clone` · `delete`",
+        "`morph_to` · `animate` · `keyframe` · `speed`",
+        "`set_rim` · `set_shadow` · `set_style` · `add_light`",
+        "`add_text` · `add_emitter` · `set_background` · `story_event`"
+      ] },
+      { "type": "p", "text": "Objects are referenced by **id, label or alias** (fuzzy). Unknown ops and bad references are reported in the console log and never corrupt the scene. Every run is one undo step (**Ctrl+Z**)." },
+      { "type": "code", "text": "[\n  { \"op\": \"add_light\", \"type\": \"spot\", \"x\": 30, \"y\": 8, \"angle\": 70, \"cone\": 24, \"color\": \"#F59E0B\" },\n  { \"op\": \"story_event\", \"start\": 0, \"end\": 3, \"title\": \"Spotlight enters\" }\n]" }
+    ]
+  }
+]

@@ -1,0 +1,611 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1" />
+<title>Kinetix Studio — User Guide</title>
+<style>
+  :root { --canvas:#07090E; --panel:#0E1118; --glass:#161B26; --line:rgba(255,255,255,.08); --blue:#3B82F6; --amber:#F59E0B; --cyan:#06B6D4; --text:#E6E9F0; --muted:#8B93A7; }
+  * { box-sizing: border-box; }
+  html { scroll-behavior: smooth; }
+  body { margin:0; background:var(--canvas); color:var(--text); font:15px/1.65 Inter, ui-sans-serif, system-ui, sans-serif; display:grid; grid-template-columns: 280px minmax(0,1fr); min-height:100vh; }
+  nav { position:sticky; top:0; align-self:start; height:100vh; padding:28px 20px; background:var(--panel); border-right:1px solid var(--line); overflow:auto; }
+  nav .brand { display:flex; align-items:center; gap:10px; font-weight:700; letter-spacing:.02em; margin-bottom:24px; }
+  nav .brand i { width:26px; height:26px; border-radius:8px; background:linear-gradient(135deg,var(--blue),var(--cyan)); box-shadow:0 0 18px rgba(6,182,212,.45); }
+  nav a { display:block; padding:7px 10px; border-radius:8px; color:var(--muted); text-decoration:none; font-size:13.5px; }
+  nav a:hover { background:var(--glass); color:var(--text); }
+  main { padding:56px clamp(24px,6vw,84px) 120px; max-width:940px; }
+  h1 { font-size:40px; line-height:1.1; margin:0 0 10px; letter-spacing:-.02em; }
+  .lead { color:var(--muted); font-size:17px; margin:0 0 36px; }
+  section { padding-top:36px; margin-top:20px; border-top:1px solid var(--line); }
+  h2 { font-size:26px; margin:0 0 8px; letter-spacing:-.01em; }
+  h3 { font-size:16px; margin:26px 0 6px; color:var(--cyan); }
+  .badge { display:inline-block; font:500 11px/1 'JetBrains Mono', ui-monospace, monospace; color:var(--amber); border:1px solid rgba(245,158,11,.35); background:rgba(245,158,11,.08); padding:5px 9px; border-radius:99px; margin-bottom:14px; }
+  code { font:12.5px 'JetBrains Mono', ui-monospace, monospace; background:var(--glass); border:1px solid var(--line); padding:1px 6px; border-radius:6px; color:#CFE8FF; }
+  pre { background:var(--panel); border:1px solid var(--line); border-radius:12px; padding:14px 16px; overflow:auto; }
+  pre code { background:none; border:0; padding:0; color:#CFE8FF; }
+  li { margin:4px 0; }
+  .tip { margin:18px 0; padding:12px 16px; border-left:3px solid var(--blue); background:rgba(59,130,246,.07); border-radius:0 10px 10px 0; }
+  .tip span { display:block; font:600 10.5px 'JetBrains Mono', monospace; letter-spacing:.12em; text-transform:uppercase; color:var(--blue); margin-bottom:2px; }
+  .recipe { margin:18px 0; padding:16px 18px; background:var(--glass); border:1px solid var(--line); border-radius:14px; }
+  .rhead { display:flex; justify-content:space-between; align-items:center; gap:12px; }
+  .rhead h4 { margin:0; font-size:16px; }
+  .try { background:var(--blue); color:#fff; text-decoration:none; font-weight:600; font-size:12.5px; padding:7px 12px; border-radius:9px; white-space:nowrap; box-shadow:0 0 20px rgba(59,130,246,.35); }
+  .try:hover { filter:brightness(1.1); }
+  .prompt { margin:10px 0; color:#CBD2E1; }
+  .prompt span { font:600 10.5px 'JetBrains Mono', monospace; letter-spacing:.12em; text-transform:uppercase; color:var(--amber); margin-right:8px; }
+  summary { cursor:pointer; color:var(--muted); font-size:13px; }
+  @media (max-width: 860px) { body { grid-template-columns: 1fr; } nav { position:static; height:auto; } }
+</style>
+</head>
+<body>
+<nav>
+  <div class="brand"><i></i> Kinetix Studio</div>
+<a href="#setup">1. Model Setup</a>
+<a href="#drawing">2. Freehand &amp; Bézier Drawing</a>
+<a href="#rigging">3. Image Import, Rigging &amp; Clones</a>
+<a href="#lighting">4. Realistic Rim Lighting</a>
+<a href="#timeline">5. Timeline, Curves &amp; Morphing</a>
+<a href="#worlds">6. Kinetic Type, Environments &amp; Particles</a>
+<a href="#export">7. Exporting: MP4, GIF, PNG, SVG, JSON</a>
+<a href="#cookbook">8. Prompt Cookbook</a>
+<a href="#reference">9. JSON Op Reference</a>
+</nav>
+<main>
+  <h1>Kinetix Studio User Guide</h1>
+  <p class="lead">Native 2D AI motion, vector &amp; character animation — 100% offline. This guide is generated from the same source as the in-app Docs hub.</p>
+<section id="setup">
+  <h2>1. Model Setup</h2>
+  <div class="badge">Live in this build</div>
+  <p>Kinetix Studio never lets a language model draw pixels. The local model is a <strong>stateless, amnesic translator</strong>: it turns one sentence into a short JSON list of <em>ops</em>, and deterministic native code does every piece of math, rigging, morphing and rendering.</p>
+  <h3>Choosing a model</h3>
+  <ul><li><strong>Low-End / Ultra-Fast</strong> (4–8 GB RAM, CPU): <code>qwen2.5:1.5b</code> (~1.1 GB).</li><li><strong>Balanced – recommended</strong> (Ryzen 7 7735HS, 16 GB, Radeon 680M): <code>llama3.2:3b</code> Q4_K_M (~2.0 GB).</li><li><strong>High Precision</strong> (32 GB RAM / dedicated GPU): <code>qwen2.5-coder:7b</code> (~4.7 GB).</li><li><strong>Bring your own</strong>: Settings → AI Engine → <em>Browse .gguf</em>; the app writes a Modelfile and registers it with Ollama for you.</li></ul>
+  <aside class="tip"><span>Tip</span>No model installed yet? Everything in this guide still works: the <strong>Director console</strong> in the left dock accepts the same JSON ops the model would produce, and every Cookbook recipe below is exactly that JSON.</aside>
+  <h3>Why prompts stay tiny</h3>
+  <p>Each request is two messages only: compact rules + a filtered micro-context (the cast roster, the selected object's blueprint, the keyframe at the playhead) + your sentence. History is never sent, so a project with 10,000 keyframes costs the same ~100 tokens as an empty one.</p>
+</section>
+<section id="drawing">
+  <h2>2. Freehand &amp; Bézier Drawing</h2>
+  <div class="badge">Live in this build</div>
+  <p>Every shape in a scene is a list of cubic Bézier segments in a resolution-independent <strong>0–100 grid</strong> (origin top-left). That is what makes morphing, rigging and export exact.</p>
+  <h3>Tools</h3>
+  <ul><li><strong>Freehand Brush</strong> – smooths your stroke into clean cubic Béziers (adjustable smoothing, width, taper).</li><li><strong>Pen / Node editor</strong> – click-drag anchors and tangent handles to sculpt any silhouette.</li><li><strong>Parametric shapes</strong> – rect, circle, ellipse, star, polygon, line, or any <code>svg_path</code> string.</li><li><strong>Convert to Bézier Path</strong> (right-click) turns any shape into editable nodes, ready to be a morph target.</li></ul>
+  <h3>Writing a path by hand</h3>
+  <pre><code>{ &quot;op&quot;: &quot;create_shape&quot;, &quot;label&quot;: &quot;Leaf&quot;, &quot;shape&quot;: &quot;svg_path&quot;,
+  &quot;svg_path&quot;: &quot;M0,-10 C8,-6 8,6 0,10 C-8,6 -8,-6 0,-10 Z&quot;,
+  &quot;x&quot;: 50, &quot;y&quot;: 50, &quot;fill&quot;: &quot;#22C55E&quot; }</code></pre>
+  <aside class="tip"><span>Tip</span>Paths use <strong>local units</strong> centred on (0,0). One unit is 1% of the stage width, so a shape 20 units wide always covers a fifth of the frame at any export size. Arcs (<code>A</code>), quadratics (<code>Q</code>,<code>T</code>) and smooth curves (<code>S</code>) are all converted to cubics automatically.</aside>
+</section>
+<section id="rigging">
+  <h2>3. Image Import, Rigging &amp; Clones</h2>
+  <div class="badge">Live in this build</div>
+  <h3>Parent-child rigging (attach_part)</h3>
+  <p>Attach any shape, tattoo, limb, armour piece or imported sprite to a parent. The child's <code>dx, dy</code> are <strong>local offsets in the parent's geometry space</strong>, so it inherits the parent's position, rotation, scale and opacity every frame.</p>
+  <pre><code>{ &quot;op&quot;: &quot;attach_part&quot;, &quot;id&quot;: &quot;Sword&quot;, &quot;parent&quot;: &quot;Knight&quot;,
+  &quot;dx&quot;: 6, &quot;dy&quot;: 1, &quot;pivot_x&quot;: 0, &quot;pivot_y&quot;: 4, &quot;rotation&quot;: -30 }</code></pre>
+  <ul><li><code>pivot_x / pivot_y</code> is the point of the child's own geometry that is pinned to the attach point, and the centre of its rotation.</li><li>Select a part and use <strong>Rig &amp; Morph → Parent</strong> to re-parent from the inspector. Cycles are rejected.</li><li>Hiding or fading a parent hides or fades the whole rig.</li></ul>
+  <h3>Clone &amp; Override</h3>
+  <p><code>clone</code> copies an object <strong>and its entire rig subtree</strong>, including keyframes, then applies differential overrides – no geometry is rebuilt.</p>
+  <pre><code>{ &quot;op&quot;: &quot;clone&quot;, &quot;source&quot;: &quot;Robot&quot;, &quot;label&quot;: &quot;Robot Variant&quot;,
+  &quot;overrides&quot;: { &quot;fill&quot;: &quot;#7C2D12&quot;, &quot;scale&quot;: 1.6 },
+  &quot;part_overrides&quot;: { &quot;Robot Eye&quot;: { &quot;fill&quot;: &quot;#F59E0B&quot; } },
+  &quot;add_parts&quot;: [ { &quot;label&quot;: &quot;Antenna&quot;, &quot;shape&quot;: &quot;line&quot;, &quot;length&quot;: 5, &quot;dx&quot;: 0, &quot;dy&quot;: -12, &quot;rotation&quot;: 90 } ] }</code></pre>
+  <aside class="tip"><span>Tip</span><strong>Duplicate lock:</strong> creating a shape whose label already exists reuses the existing object instead of making a twin. Pass <code>&quot;force_new&quot;: true</code> if you really want a copy.</aside>
+  <h3>Image import</h3>
+  <p>PNG, JPG, WebP and SVG files are stored in the project asset folder and indexed with a label, tags and bounding box, so imported art can be animated, tinted, rim-lit, used as a parallax layer, or become a parent for attached parts.</p>
+</section>
+<section id="lighting">
+  <h2>4. Realistic Rim Lighting</h2>
+  <div class="badge">Live in this build</div>
+  <p>Add <strong>point</strong>, <strong>spot</strong> and <strong>sun</strong> lights as scene objects (header → <em>Add Light</em>, or the <code>add_light</code> op). Every object that has a <strong>Rim</strong> setting then receives a specular crescent on the edge that faces each light, in that light's colour.</p>
+  <h3>How the rim shader works</h3>
+  <ul><li>The silhouette is drawn, then an <strong>offset copy</strong> (shifted away from the light by <code>spread</code>) is erased from it. What survives is a crescent hugging the light-facing edge.</li><li>A second, thinner, whiter pass adds the <strong>specular core</strong>. Both passes are composited additively and also written to the <strong>bloom buffer</strong>.</li><li>Up to the 3 strongest lights contribute, weighted by intensity, distance falloff and (for spots) the beam cone.</li></ul>
+  <h3>Object lighting controls</h3>
+  <ul><li><strong>Rim intensity / spread / use light colour</strong> – set a fixed colour, or let each light tint its own rim for dual cyan + amber looks.</li><li><strong>Lit</strong> – diffuse light wash clipped to the silhouette.</li><li><strong>Cast shadow</strong> – soft shadow thrown <em>away</em> from the key light (<code>auto</code>), or fixed offset.</li><li><strong>Ambient occlusion</strong> – a soft contact-darkening pool beneath the object.</li><li><strong>Glow</strong> – emissive output into the multi-pass bloom.</li><li><strong>Depth</strong> – 0 near … 1 far. Far objects pick up atmospheric haze and, with <em>Depth of field</em> on, blur away from the focus plane.</li></ul>
+  <h3>Volumetrics</h3>
+  <p>Turn on <strong>Volumetric</strong> on a light for god-rays and halo (point), a visible beam cone (spot) or a broad atmospheric wash (sun).</p>
+  <pre><code>{ &quot;op&quot;: &quot;set_rim&quot;, &quot;id&quot;: &quot;Peregrine Falcon&quot;, &quot;color&quot;: &quot;#06B6D4&quot;,
+  &quot;light_color&quot;: true, &quot;intensity&quot;: 1.2, &quot;spread&quot;: 0.9 }</code></pre>
+  <aside class="tip"><span>Tip</span>Light properties are animatable: keyframe <code>intensity</code>, <code>x</code>, <code>y</code>, <code>radius</code> or <code>angle</code> on a light to make a flash, a sunset or a sweeping searchlight.</aside>
+</section>
+<section id="timeline">
+  <h2>5. Timeline, Curves &amp; Morphing</h2>
+  <div class="badge">Live in this build</div>
+  <h3>Keyframes &amp; the dope sheet</h3>
+  <p>Every animatable property (<code>x, y, rotation, scale, opacity, morph, glow, rim</code>) has a track of amber diamonds. <strong>Drag</strong> a diamond to retime it, <strong>click</strong> to select it, <strong>right-click</strong> to delete or choose an easing. Dragging an object on the canvas writes a keyframe at the playhead when that property is already animated.</p>
+  <h3>Cubic-Bézier curve editor</h3>
+  <p>Select a keyframe, open the <strong>Curve</strong> tab, and drag the two handles. The curve shapes the motion <em>leaving</em> that keyframe. Values above 1 or below 0 overshoot – that is how springs and anticipation are made. Presets: linear, ease-in, ease-out, ease-in-out, back-out, snap.</p>
+  <h3>Parametric presets</h3>
+  <ul><li><code>linear_move</code>, <code>ease_in_out</code>, <code>spring_bounce</code> – move to <code>to_x,to_y</code> (or <code>dx,dy</code>).</li><li><code>arc_jump</code> – parabolic hop with <code>height</code>.</li><li><code>walk_cycle</code> – <code>steps</code>, <code>distance</code>, <code>bob</code>, <code>sway</code>.</li><li><code>orbit</code> – <code>radius</code>, <code>turns</code>, optional <code>center_x/center_y</code>.</li><li><code>pulse</code> – <code>amount</code>, <code>count</code>.   <code>shake</code> – <code>amplitude</code>, <code>count</code>.</li></ul>
+  <pre><code>{ &quot;op&quot;: &quot;animate&quot;, &quot;id&quot;: &quot;Ball&quot;, &quot;preset&quot;: &quot;arc_jump&quot;,
+  &quot;dx&quot;: 30, &quot;height&quot;: 20, &quot;start&quot;: 1, &quot;duration&quot;: 1.2 }</code></pre>
+  <h3>Vector path morphing (morph_to)</h3>
+  <p>Morphing works between <strong>any two paths</strong>. The engine pairs sub-paths, subdivides the shorter outline until both have the same number of Bézier segments, fixes winding direction, then picks the start-point rotation that minimises travel. Interpolation runs on the control points every frame, so it stays smooth at 60 FPS.</p>
+  <pre><code>{ &quot;op&quot;: &quot;morph_to&quot;, &quot;id&quot;: &quot;Peregrine Falcon&quot;, &quot;target&quot;: &quot;Shadow Beast&quot;,
+  &quot;at&quot;: 3.5, &quot;duration&quot;: 2, &quot;ease&quot;: [0.65, 0, 0.35, 1] }</code></pre>
+  <aside class="tip"><span>Tip</span><code>target</code> may be another object (its path <strong>and</strong> colour are used), or an inline spec such as <code>{ &quot;shape&quot;: &quot;star&quot;, &quot;outer&quot;: 12 }</code>, or <code>{ &quot;svg_path&quot;: &quot;M…&quot; }</code>. The object's <em>fill → fill-to</em> colours cross-fade with the morph.</aside>
+  <h3>Relative modifiers</h3>
+  <p>Never ask the model to do arithmetic. Use <code>{ &quot;op&quot;: &quot;speed&quot;, &quot;id&quot;: &quot;Ball&quot;, &quot;speed_multiplier&quot;: 2 }</code> or <code>keyframe</code> with <code>&quot;modifier&quot;: &quot;add&quot; | &quot;multiply&quot;</code> – exact values are computed in code.</p>
+</section>
+<section id="worlds">
+  <h2>6. Kinetic Type, Environments &amp; Particles</h2>
+  <div class="badge">Live in this build</div>
+  <h3>Kinetic typography</h3>
+  <p>Text splits into characters or words, each delayed by <code>stagger</code> seconds. Effects: <code>rise</code>, <code>fade</code>, <code>pop</code> (spring), <code>drop</code> (bounce), <code>spin</code>, <code>wave</code> (continuous), <code>typewriter</code>. Text objects support fill, glow, rim lighting, keyframes and parenting like any other object.</p>
+  <pre><code>{ &quot;op&quot;: &quot;add_text&quot;, &quot;content&quot;: &quot;HELLO&quot;, &quot;effect&quot;: &quot;pop&quot;, &quot;unit&quot;: &quot;char&quot;,
+  &quot;stagger&quot;: 0.08, &quot;start&quot;: 0.5, &quot;size&quot;: 9, &quot;x&quot;: 50, &quot;y&quot;: 45 }</code></pre>
+  <h3>Procedural backgrounds</h3>
+  <p><code>set_background</code> loads a full procedural world: multi-stop sky gradient, sun/moon glow, twinkling stars, drifting volumetric clouds, three-layer parallax mountains, horizon haze, depth-of-field and vignette. Presets: <code>dusk</code>, <code>night</code>, <code>dawn</code>, <code>storm</code>, <code>day</code>, <code>none</code>. Every value is editable in the <strong>World</strong> tab.</p>
+  <h3>Particle emitters</h3>
+  <p>Kinds: <code>embers</code>, <code>sparks</code>, <code>mist</code>, <code>rain</code>, <code>snow</code>, <code>trail</code>. A trail emitter with <code>follow</code> leaves particles <em>where the object was</em>, so it always matches the motion. Particles are a pure function of time, so scrubbing and export are frame-exact.</p>
+  <pre><code>{ &quot;op&quot;: &quot;add_emitter&quot;, &quot;kind&quot;: &quot;trail&quot;, &quot;follow&quot;: &quot;Ember Star&quot;,
+  &quot;color&quot;: &quot;#F59E0B&quot;, &quot;color2&quot;: &quot;#EF4444&quot;, &quot;start&quot;: 0, &quot;end&quot;: 6 }</code></pre>
+</section>
+<section id="export">
+  <h2>7. Exporting: MP4, GIF, PNG, SVG, JSON</h2>
+  <div class="badge">Live in this build</div>
+  <p><strong>Export</strong> (top-right) renders your project frame by frame with the <em>same</em> renderer the viewport uses — no screen capture. Frame <code>i</code> is drawn at <code>t = i ÷ fps</code>, so the same project always produces the same pixels, at any resolution, on any machine.</p>
+  <h3>Formats</h3>
+  <ul><li><strong>MP4 (H.264)</strong> — <code>yuv420p</code>, BT.709, <code>+faststart</code>, CRF quality (default 18, preset <code>veryfast</code>). Frames are streamed straight into FFmpeg, so a 10-minute 4K export never holds more than one frame in memory.</li><li><strong>GIF</strong> — palette-optimised with FFmpeg <code>palettegen</code> + <code>paletteuse</code> (Bayer dithering). GIF stores delays in 1/100 s, so 60 fps plays at about 50 fps; 24–30 fps is the sweet spot.</li><li><strong>PNG sequence</strong> — one numbered file per frame (<code>frame_0000.png</code>, <code>frame_0001.png</code> …) into a folder you choose. The numbers are the real frame indices, so exporting 2.5 s–4 s at 30 fps starts at <code>frame_0075.png</code>. Works without FFmpeg.</li><li><strong>SVG</strong> — a resolution-independent vector snapshot at the playhead (rig transforms, keyframes, morphs, gradients, shadows and sprites). Bloom, volumetric light and particles are raster effects and are not included.</li><li><strong>Scene JSON</strong> — the complete project (objects, rig, keyframes, lights, emitters, story events) as <code>.kinetix.json</code>.</li><li><strong>PNG still</strong> — the current playhead frame at the chosen resolution.</li></ul>
+  <h3>Resolution, frame rate and range</h3>
+  <ul><li><strong>720p / 1080p</strong> keep your scene's aspect ratio (height fixed, width derived and rounded to an even number — H.264 requires even sizes). <strong>Custom</strong> accepts any size up to 7680 × 4320.</li><li><strong>24 / 30 / 60 fps.</strong> The range is <code>[start, end)</code> in seconds — the end is exclusive, so a 10 s project at 60 fps is exactly 600 frames. <em>From playhead</em> starts the export where you are parked.</li><li>Because the scene lives on a 0–100 grid, changing resolution never changes the composition.</li></ul>
+  <h3>Where the file goes</h3>
+  <p>Press <strong>Browse…</strong> (or just <strong>Export</strong>) to pick a file with the native save dialog — or a folder for PNG sequences. Videos are written to <code>&lt;name&gt;.part</code> and renamed only when FFmpeg finishes cleanly, so a failed or cancelled export never leaves a half-written video.</p>
+  <h3>Progress, cancel and errors</h3>
+  <ul><li>The progress panel shows <strong>frame x / N</strong>, <strong>ETA</strong>, elapsed time and <strong>MB written</strong>.</li><li><strong>Cancel export</strong> stops immediately: FFmpeg is killed and every temporary and partial file is deleted. Closing the app mid-export does the same.</li><li><strong>Disk full</strong> and <strong>permission denied</strong> are reported in plain language (for example <em>“Disk full while writing …”</em>) and partial files are cleaned up — free some space or pick another drive and try again.</li></ul>
+  <h3>FFmpeg</h3>
+  <p>MP4 and GIF are encoded by FFmpeg. Kinetix looks for it in this order: the <code>KINETIX_FFMPEG</code> environment variable → a copy bundled <strong>next to the app</strong> (the sidecar in installer builds) → <code>ffmpeg</code> on your <code>PATH</code>.</p>
+  <pre><code>winget install Gyan.FFmpeg      # Windows
+sudo apt install ffmpeg         # Debian / Ubuntu
+brew install ffmpeg             # macOS</code></pre>
+  <aside class="tip"><span>Tip</span>No FFmpeg? The Export dialog says so clearly and keeps <strong>PNG sequence</strong>, <strong>SVG</strong>, <strong>Scene JSON</strong> and <strong>PNG still</strong> fully usable. You can turn a PNG sequence into a video later with any editor.</aside>
+  <aside class="tip"><span>Tip</span>Developers: <code>npm run tauri:build:bundled</code> stages FFmpeg as a Tauri sidecar (<code>externalBin</code>) so the installer ships it. See the README, section <em>Build &amp; package</em>.</aside>
+</section>
+<section id="cookbook">
+  <h2>8. Prompt Cookbook</h2>
+  <div class="badge">Runnable</div>
+  <p>Each recipe shows the plain-English prompt and the exact ops the local model produces for it. Press <strong>Try in Canvas</strong> to apply it to your current project (inside the app) or to open it in the studio (from the web guide).</p>
+  <div class="recipe" id="recipe-rim_orb">
+  <div class="rhead"><h4>Rim-lit glass orb</h4><a class="try" href="/?try=rim_orb">Try in Canvas</a></div>
+  <p class="prompt"><span>Prompt</span>On a night sky, add a dark orb lit by an amber light from the left and a cyan light from the right, with strong rim lighting and a soft shadow. Make it orbit.</p>
+  <details><summary>Show the 7 ops the model emits</summary><pre><code>[
+  {
+    &quot;op&quot;: &quot;set_background&quot;,
+    &quot;preset&quot;: &quot;night&quot;
+  },
+  {
+    &quot;op&quot;: &quot;create_shape&quot;,
+    &quot;label&quot;: &quot;Glass Orb&quot;,
+    &quot;shape&quot;: &quot;circle&quot;,
+    &quot;r&quot;: 9,
+    &quot;x&quot;: 50,
+    &quot;y&quot;: 52,
+    &quot;fill&quot;: &quot;#1B2236&quot;,
+    &quot;depth&quot;: 0.2,
+    &quot;ao&quot;: 0.6,
+    &quot;glow&quot;: 0.15
+  },
+  {
+    &quot;op&quot;: &quot;add_light&quot;,
+    &quot;type&quot;: &quot;point&quot;,
+    &quot;label&quot;: &quot;Amber Key&quot;,
+    &quot;x&quot;: 22,
+    &quot;y&quot;: 30,
+    &quot;color&quot;: &quot;#F59E0B&quot;,
+    &quot;intensity&quot;: 1.1,
+    &quot;radius&quot;: 70
+  },
+  {
+    &quot;op&quot;: &quot;add_light&quot;,
+    &quot;type&quot;: &quot;point&quot;,
+    &quot;label&quot;: &quot;Cyan Fill&quot;,
+    &quot;x&quot;: 80,
+    &quot;y&quot;: 34,
+    &quot;color&quot;: &quot;#06B6D4&quot;,
+    &quot;intensity&quot;: 0.9,
+    &quot;radius&quot;: 70
+  },
+  {
+    &quot;op&quot;: &quot;set_rim&quot;,
+    &quot;id&quot;: &quot;Glass Orb&quot;,
+    &quot;light_color&quot;: true,
+    &quot;intensity&quot;: 1.3,
+    &quot;spread&quot;: 1.1
+  },
+  {
+    &quot;op&quot;: &quot;set_shadow&quot;,
+    &quot;id&quot;: &quot;Glass Orb&quot;,
+    &quot;opacity&quot;: 0.45,
+    &quot;blur&quot;: 4,
+    &quot;distance&quot;: 4
+  },
+  {
+    &quot;op&quot;: &quot;animate&quot;,
+    &quot;id&quot;: &quot;Glass Orb&quot;,
+    &quot;preset&quot;: &quot;orbit&quot;,
+    &quot;radius&quot;: 10,
+    &quot;turns&quot;: 1,
+    &quot;start&quot;: 0,
+    &quot;duration&quot;: 8
+  }
+]</code></pre></details>
+</div>
+  <div class="recipe" id="recipe-morph_star">
+  <div class="rhead"><h4>Morph a circle into a star</h4><a class="try" href="/?try=morph_star">Try in Canvas</a></div>
+  <p class="prompt"><span>Prompt</span>Make a blue circle at dawn that morphs into a golden five-point star after one second, then pulses three times.</p>
+  <details><summary>Show the 5 ops the model emits</summary><pre><code>[
+  {
+    &quot;op&quot;: &quot;set_background&quot;,
+    &quot;preset&quot;: &quot;dawn&quot;
+  },
+  {
+    &quot;op&quot;: &quot;create_shape&quot;,
+    &quot;label&quot;: &quot;Morph Blob&quot;,
+    &quot;shape&quot;: &quot;circle&quot;,
+    &quot;r&quot;: 9,
+    &quot;x&quot;: 50,
+    &quot;y&quot;: 50,
+    &quot;fill&quot;: &quot;#3B82F6&quot;,
+    &quot;glow&quot;: 0.4,
+    &quot;rim&quot;: {
+      &quot;color&quot;: &quot;#FFFFFF&quot;,
+      &quot;intensity&quot;: 1,
+      &quot;spread&quot;: 0.8
+    }
+  },
+  {
+    &quot;op&quot;: &quot;add_light&quot;,
+    &quot;type&quot;: &quot;sun&quot;,
+    &quot;label&quot;: &quot;Morning Sun&quot;,
+    &quot;angle&quot;: -40,
+    &quot;color&quot;: &quot;#FFE3A3&quot;,
+    &quot;intensity&quot;: 1,
+    &quot;volumetric&quot;: false
+  },
+  {
+    &quot;op&quot;: &quot;morph_to&quot;,
+    &quot;id&quot;: &quot;Morph Blob&quot;,
+    &quot;target&quot;: {
+      &quot;shape&quot;: &quot;star&quot;,
+      &quot;points&quot;: 5,
+      &quot;outer&quot;: 13,
+      &quot;inner&quot;: 5.5
+    },
+    &quot;fill&quot;: &quot;#F59E0B&quot;,
+    &quot;at&quot;: 1,
+    &quot;duration&quot;: 2,
+    &quot;ease&quot;: [
+      0.65,
+      0,
+      0.35,
+      1
+    ]
+  },
+  {
+    &quot;op&quot;: &quot;animate&quot;,
+    &quot;id&quot;: &quot;Morph Blob&quot;,
+    &quot;preset&quot;: &quot;pulse&quot;,
+    &quot;start&quot;: 3.2,
+    &quot;duration&quot;: 2,
+    &quot;count&quot;: 3
+  }
+]</code></pre></details>
+</div>
+  <div class="recipe" id="recipe-robot_clone">
+  <div class="rhead"><h4>Rigged robot + clone variant</h4><a class="try" href="/?try=robot_clone">Try in Canvas</a></div>
+  <p class="prompt"><span>Prompt</span>Build a small robot with a head, a glowing cyan eye and a waving arm. Then clone it as an orange variant with an antenna.</p>
+  <details><summary>Show the 8 ops the model emits</summary><pre><code>[
+  {
+    &quot;op&quot;: &quot;set_background&quot;,
+    &quot;preset&quot;: &quot;night&quot;
+  },
+  {
+    &quot;op&quot;: &quot;create_assembly&quot;,
+    &quot;label&quot;: &quot;Robot&quot;,
+    &quot;shape&quot;: &quot;rect&quot;,
+    &quot;w&quot;: 8,
+    &quot;h&quot;: 10,
+    &quot;radius&quot;: 2,
+    &quot;x&quot;: 30,
+    &quot;y&quot;: 58,
+    &quot;fill&quot;: &quot;#2A3350&quot;,
+    &quot;scale&quot;: 1.3,
+    &quot;parts&quot;: [
+      {
+        &quot;label&quot;: &quot;Robot Head&quot;,
+        &quot;shape&quot;: &quot;rect&quot;,
+        &quot;w&quot;: 7,
+        &quot;h&quot;: 5,
+        &quot;radius&quot;: 1.5,
+        &quot;dx&quot;: 0,
+        &quot;dy&quot;: -8,
+        &quot;fill&quot;: &quot;#3A4670&quot;
+      },
+      {
+        &quot;label&quot;: &quot;Robot Eye&quot;,
+        &quot;shape&quot;: &quot;circle&quot;,
+        &quot;r&quot;: 0.8,
+        &quot;dx&quot;: 0,
+        &quot;dy&quot;: -8,
+        &quot;fill&quot;: &quot;#22D3EE&quot;,
+        &quot;glow&quot;: 1.4
+      },
+      {
+        &quot;label&quot;: &quot;Robot Arm&quot;,
+        &quot;shape&quot;: &quot;rect&quot;,
+        &quot;w&quot;: 2,
+        &quot;h&quot;: 7,
+        &quot;radius&quot;: 1,
+        &quot;dx&quot;: 6,
+        &quot;dy&quot;: -2,
+        &quot;pivot_y&quot;: -3,
+        &quot;fill&quot;: &quot;#3A4670&quot;
+      }
+    ]
+  },
+  {
+    &quot;op&quot;: &quot;add_light&quot;,
+    &quot;type&quot;: &quot;point&quot;,
+    &quot;label&quot;: &quot;Sky Light&quot;,
+    &quot;x&quot;: 50,
+    &quot;y&quot;: 12,
+    &quot;color&quot;: &quot;#9CC9FF&quot;,
+    &quot;intensity&quot;: 1,
+    &quot;radius&quot;: 80
+  },
+  {
+    &quot;op&quot;: &quot;set_rim&quot;,
+    &quot;id&quot;: &quot;Robot&quot;,
+    &quot;color&quot;: &quot;#06B6D4&quot;,
+    &quot;light_color&quot;: true,
+    &quot;intensity&quot;: 1
+  },
+  {
+    &quot;op&quot;: &quot;keyframe&quot;,
+    &quot;id&quot;: &quot;Robot Arm&quot;,
+    &quot;prop&quot;: &quot;rotation&quot;,
+    &quot;t&quot;: 0,
+    &quot;value&quot;: -20,
+    &quot;ease&quot;: &quot;ease_in_out&quot;
+  },
+  {
+    &quot;op&quot;: &quot;keyframe&quot;,
+    &quot;id&quot;: &quot;Robot Arm&quot;,
+    &quot;prop&quot;: &quot;rotation&quot;,
+    &quot;t&quot;: 1,
+    &quot;value&quot;: 40,
+    &quot;ease&quot;: &quot;ease_in_out&quot;
+  },
+  {
+    &quot;op&quot;: &quot;keyframe&quot;,
+    &quot;id&quot;: &quot;Robot Arm&quot;,
+    &quot;prop&quot;: &quot;rotation&quot;,
+    &quot;t&quot;: 2,
+    &quot;value&quot;: -20
+  },
+  {
+    &quot;op&quot;: &quot;clone&quot;,
+    &quot;source&quot;: &quot;Robot&quot;,
+    &quot;label&quot;: &quot;Robot Variant&quot;,
+    &quot;overrides&quot;: {
+      &quot;fill&quot;: &quot;#7C2D12&quot;,
+      &quot;scale&quot;: 1.6,
+      &quot;x&quot;: 68,
+      &quot;y&quot;: 56
+    },
+    &quot;part_overrides&quot;: {
+      &quot;Robot Eye&quot;: {
+        &quot;fill&quot;: &quot;#F59E0B&quot;
+      },
+      &quot;Robot Head&quot;: {
+        &quot;fill&quot;: &quot;#9A3412&quot;
+      }
+    },
+    &quot;add_parts&quot;: [
+      {
+        &quot;label&quot;: &quot;Antenna&quot;,
+        &quot;shape&quot;: &quot;line&quot;,
+        &quot;length&quot;: 5,
+        &quot;dx&quot;: 0,
+        &quot;dy&quot;: -11,
+        &quot;rotation&quot;: 90,
+        &quot;stroke&quot;: &quot;#F59E0B&quot;
+      }
+    ]
+  }
+]</code></pre></details>
+</div>
+  <div class="recipe" id="recipe-kinetic_title">
+  <div class="rhead"><h4>Kinetic title sequence</h4><a class="try" href="/?try=kinetic_title">Try in Canvas</a></div>
+  <p class="prompt"><span>Prompt</span>Drop the letters of KINETIX STUDIO in one by one, then fade in a tagline word by word and add a wavy line of monospace text.</p>
+  <details><summary>Show the 4 ops the model emits</summary><pre><code>[
+  {
+    &quot;op&quot;: &quot;set_background&quot;,
+    &quot;preset&quot;: &quot;night&quot;
+  },
+  {
+    &quot;op&quot;: &quot;add_text&quot;,
+    &quot;label&quot;: &quot;Headline&quot;,
+    &quot;content&quot;: &quot;KINETIX STUDIO&quot;,
+    &quot;size&quot;: 8,
+    &quot;weight&quot;: 800,
+    &quot;effect&quot;: &quot;drop&quot;,
+    &quot;unit&quot;: &quot;char&quot;,
+    &quot;stagger&quot;: 0.07,
+    &quot;duration&quot;: 0.8,
+    &quot;start&quot;: 0.2,
+    &quot;x&quot;: 50,
+    &quot;y&quot;: 42,
+    &quot;fill&quot;: &quot;#F4F6FB&quot;,
+    &quot;glow&quot;: 0.4
+  },
+  {
+    &quot;op&quot;: &quot;add_text&quot;,
+    &quot;label&quot;: &quot;Tagline&quot;,
+    &quot;content&quot;: &quot;Type that moves with intent&quot;,
+    &quot;size&quot;: 2.6,
+    &quot;weight&quot;: 500,
+    &quot;effect&quot;: &quot;rise&quot;,
+    &quot;unit&quot;: &quot;word&quot;,
+    &quot;stagger&quot;: 0.18,
+    &quot;duration&quot;: 0.6,
+    &quot;start&quot;: 1.4,
+    &quot;x&quot;: 50,
+    &quot;y&quot;: 56,
+    &quot;fill&quot;: &quot;#06B6D4&quot;
+  },
+  {
+    &quot;op&quot;: &quot;add_text&quot;,
+    &quot;label&quot;: &quot;Wavy&quot;,
+    &quot;content&quot;: &quot;~ every letter alive ~&quot;,
+    &quot;size&quot;: 2.4,
+    &quot;effect&quot;: &quot;wave&quot;,
+    &quot;unit&quot;: &quot;char&quot;,
+    &quot;stagger&quot;: 0.04,
+    &quot;start&quot;: 2.4,
+    &quot;x&quot;: 50,
+    &quot;y&quot;: 66,
+    &quot;fill&quot;: &quot;#F59E0B&quot;,
+    &quot;font&quot;: &quot;mono&quot;
+  }
+]</code></pre></details>
+</div>
+  <div class="recipe" id="recipe-snow_night">
+  <div class="rhead"><h4>Snowfall under a street lamp</h4><a class="try" href="/?try=snow_night">Try in Canvas</a></div>
+  <p class="prompt"><span>Prompt</span>A snowy night with drifting mist and a warm spotlight shining down from above.</p>
+  <details><summary>Show the 4 ops the model emits</summary><pre><code>[
+  {
+    &quot;op&quot;: &quot;set_background&quot;,
+    &quot;preset&quot;: &quot;night&quot;
+  },
+  {
+    &quot;op&quot;: &quot;add_emitter&quot;,
+    &quot;kind&quot;: &quot;snow&quot;
+  },
+  {
+    &quot;op&quot;: &quot;add_emitter&quot;,
+    &quot;kind&quot;: &quot;mist&quot;,
+    &quot;color&quot;: &quot;#9DB4E8&quot;
+  },
+  {
+    &quot;op&quot;: &quot;add_light&quot;,
+    &quot;type&quot;: &quot;spot&quot;,
+    &quot;label&quot;: &quot;Street Lamp&quot;,
+    &quot;x&quot;: 50,
+    &quot;y&quot;: 6,
+    &quot;angle&quot;: 90,
+    &quot;cone&quot;: 26,
+    &quot;radius&quot;: 70,
+    &quot;color&quot;: &quot;#FFD9A0&quot;,
+    &quot;intensity&quot;: 1.2
+  }
+]</code></pre></details>
+</div>
+  <div class="recipe" id="recipe-orbit_embers">
+  <div class="rhead"><h4>Orbiting star with an ember trail</h4><a class="try" href="/?try=orbit_embers">Try in Canvas</a></div>
+  <p class="prompt"><span>Prompt</span>A glowing six-point star orbits twice at dusk, leaving a fiery trail behind it.</p>
+  <details><summary>Show the 4 ops the model emits</summary><pre><code>[
+  {
+    &quot;op&quot;: &quot;set_background&quot;,
+    &quot;preset&quot;: &quot;dusk&quot;
+  },
+  {
+    &quot;op&quot;: &quot;create_shape&quot;,
+    &quot;label&quot;: &quot;Ember Star&quot;,
+    &quot;shape&quot;: &quot;star&quot;,
+    &quot;points&quot;: 6,
+    &quot;outer&quot;: 5,
+    &quot;inner&quot;: 2.2,
+    &quot;x&quot;: 50,
+    &quot;y&quot;: 45,
+    &quot;fill&quot;: &quot;#FFB347&quot;,
+    &quot;glow&quot;: 1.2,
+    &quot;rim&quot;: {
+      &quot;color&quot;: &quot;#FFFFFF&quot;,
+      &quot;intensity&quot;: 0.8,
+      &quot;spread&quot;: 0.6
+    }
+  },
+  {
+    &quot;op&quot;: &quot;animate&quot;,
+    &quot;id&quot;: &quot;Ember Star&quot;,
+    &quot;preset&quot;: &quot;orbit&quot;,
+    &quot;radius&quot;: 16,
+    &quot;turns&quot;: 2,
+    &quot;start&quot;: 0,
+    &quot;duration&quot;: 8
+  },
+  {
+    &quot;op&quot;: &quot;add_emitter&quot;,
+    &quot;kind&quot;: &quot;trail&quot;,
+    &quot;follow&quot;: &quot;Ember Star&quot;,
+    &quot;color&quot;: &quot;#F59E0B&quot;,
+    &quot;color2&quot;: &quot;#EF4444&quot;
+  }
+]</code></pre></details>
+</div>
+  <div class="recipe" id="recipe-spring_ball">
+  <div class="rhead"><h4>Spring bounce + arc jump</h4><a class="try" href="/?try=spring_ball">Try in Canvas</a></div>
+  <p class="prompt"><span>Prompt</span>A red ball springs across a sunny day to the bottom right, then jumps back in a high arc.</p>
+  <details><summary>Show the 4 ops the model emits</summary><pre><code>[
+  {
+    &quot;op&quot;: &quot;set_background&quot;,
+    &quot;preset&quot;: &quot;day&quot;
+  },
+  {
+    &quot;op&quot;: &quot;create_shape&quot;,
+    &quot;label&quot;: &quot;Bouncer&quot;,
+    &quot;shape&quot;: &quot;circle&quot;,
+    &quot;r&quot;: 5,
+    &quot;x&quot;: 20,
+    &quot;y&quot;: 30,
+    &quot;fill&quot;: &quot;#EF4444&quot;,
+    &quot;ao&quot;: 0.5,
+    &quot;shadow&quot;: {
+      &quot;opacity&quot;: 0.35,
+      &quot;blur&quot;: 2,
+      &quot;dx&quot;: 2,
+      &quot;dy&quot;: 3,
+      &quot;auto&quot;: false
+    },
+    &quot;rim&quot;: {
+      &quot;color&quot;: &quot;#FFFFFF&quot;,
+      &quot;intensity&quot;: 0.9,
+      &quot;spread&quot;: 0.6,
+      &quot;angle&quot;: -50
+    }
+  },
+  {
+    &quot;op&quot;: &quot;animate&quot;,
+    &quot;id&quot;: &quot;Bouncer&quot;,
+    &quot;preset&quot;: &quot;spring_bounce&quot;,
+    &quot;to_x&quot;: 75,
+    &quot;to_y&quot;: 78,
+    &quot;start&quot;: 0.5,
+    &quot;duration&quot;: 2.5
+  },
+  {
+    &quot;op&quot;: &quot;animate&quot;,
+    &quot;id&quot;: &quot;Bouncer&quot;,
+    &quot;preset&quot;: &quot;arc_jump&quot;,
+    &quot;dx&quot;: -20,
+    &quot;height&quot;: 25,
+    &quot;start&quot;: 3.5,
+    &quot;duration&quot;: 1.5
+  }
+]</code></pre></details>
+</div>
+</section>
+<section id="reference">
+  <h2>9. JSON Op Reference</h2>
+  <div class="badge">Live in this build</div>
+  <ul><li><code>create_shape</code> · <code>create_assembly</code> · <code>attach_part</code> · <code>detach_part</code> · <code>clone</code> · <code>delete</code></li><li><code>morph_to</code> · <code>animate</code> · <code>keyframe</code> · <code>speed</code></li><li><code>set_rim</code> · <code>set_shadow</code> · <code>set_style</code> · <code>add_light</code></li><li><code>add_text</code> · <code>add_emitter</code> · <code>set_background</code> · <code>story_event</code></li></ul>
+  <p>Objects are referenced by <strong>id, label or alias</strong> (fuzzy). Unknown ops and bad references are reported in the console log and never corrupt the scene. Every run is one undo step (<strong>Ctrl+Z</strong>).</p>
+  <pre><code>[
+  { &quot;op&quot;: &quot;add_light&quot;, &quot;type&quot;: &quot;spot&quot;, &quot;x&quot;: 30, &quot;y&quot;: 8, &quot;angle&quot;: 70, &quot;cone&quot;: 24, &quot;color&quot;: &quot;#F59E0B&quot; },
+  { &quot;op&quot;: &quot;story_event&quot;, &quot;start&quot;: 0, &quot;end&quot;: 3, &quot;title&quot;: &quot;Spotlight enters&quot; }
+]</code></pre>
+</section>
+</main>
+</body>
+</html>
