@@ -1,0 +1,71 @@
+{
+  "$schema": "https://schema.tauri.app/config/2",
+  "productName": "Kinetix Studio",
+  "version": "0.4.0",
+  "identifier": "studio.kinetix.app",
+  "build": {
+    "beforeDevCommand": "npm run dev -- --port 5173 --strictPort",
+    "devUrl": "http://localhost:5173",
+    "beforeBuildCommand": "npm run build",
+    "frontendDist": "../dist"
+  },
+  "app": {
+    "windows": [
+      {
+        "label": "main",
+        "title": "Kinetix Studio",
+        "width": 1440,
+        "height": 900,
+        "minWidth": 1180,
+        "minHeight": 720,
+        "center": true,
+        "theme": "Dark",
+        "backgroundColor": "#07090E",
+        "dragDropEnabled": false
+      }
+    ],
+    "security": {
+      "assetProtocol": { "enable": true, "scope": ["$APPDATA/**", "$APPDATA/assets/**"] },
+      "csp": "default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; font-src 'self' data:; img-src 'self' data: blob: asset: http://asset.localhost; media-src 'self' blob: data:; object-src 'none'; base-uri 'self'; form-action 'none'; frame-src 'none'; connect-src ipc: http://ipc.localhost http://127.0.0.1:11434 http://127.0.0.1:8080",
+      "devCsp": "default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; font-src 'self' data:; img-src 'self' data: blob: asset: http://asset.localhost; object-src 'none'; connect-src ipc: http://ipc.localhost http://127.0.0.1:11434 http://127.0.0.1:8080 http://localhost:5173 ws://localhost:5173"
+    }
+  },
+  "bundle": {
+    "active": true,
+    "targets": "all",
+    "icon": [
+      "icons/32x32.png",
+      "icons/128x128.png",
+      "icons/128x128@2x.png",
+      "icons/icon.icns",
+      "icons/icon.ico"
+    ],
+    "publisher": "Kinetix Studio",
+    "copyright": "Copyright © 2026 Kinetix Studio",
+    "category": "GraphicsAndDesign",
+    "homepage": "https://github.com/Kunal-Ch21/Kinetix",
+    "shortDescription": "Offline 2D AI motion & vector animation studio",
+    "longDescription": "Kinetix Studio is a 100% offline native 2D animation suite: Bézier drawing, parent-child rigging, realistic 2D lighting, vector morphing, kinetic typography and a local-LLM AI Director — with a deterministic 60 FPS exporter to MP4, GIF, PNG sequence, SVG and JSON.",
+    "windows": {
+      "nsis": {
+        "installMode": "both",
+        "displayLanguageSelector": false,
+        "languages": ["English"]
+      },
+      "wix": {
+        "language": "en-US"
+      },
+      "webviewInstallMode": { "type": "embedBootstrapper" }
+    },
+    "linux": {
+      "deb": {
+        "section": "graphics",
+        "priority": "optional",
+        "recommends": ["ffmpeg"]
+      },
+      "appimage": {
+        "bundleMediaFramework": false
+      }
+    }
+  }
+}

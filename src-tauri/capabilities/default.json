@@ -1,0 +1,7 @@
+{
+  "$schema": "../gen/schemas/desktop-schema.json",
+  "identifier": "default",
+  "description": "Main window capability — local-only, no network permissions. Dialogs are limited to the native Open (GGUF picker, export folder) and Save (export file) pickers; exports are written by Rust commands to the path the user picked.",
+  "windows": ["main"],
+  "permissions": ["core:default", "dialog:allow-open", "dialog:allow-save"]
+}
